@@ -1,0 +1,650 @@
+class MctMethodForEF {
+    // Method to return the MultiPle Re-Useability,
+    static setWidthMct(mctformPanel, vFldId, vWidth) {
+        try {
+            console.log('setWidthMct() Called!!');
+            if (!mctformPanel || !mctformPanel.getForm || !mctformPanel.getForm().getFields) {
+                throw new Error('mctformPanel is not defined or does not have the required methods');
+            }
+            var vFld = mctformPanel.getFld(vFldId);
+            vFld.setWidth(vWidth);
+        } catch (err) {
+            console.log('setWidthMct() Error: ', err);
+        }
+    };
+    static setHeightMct(mctformPanel, vFldId, vheight) {
+        try {
+            console.log('setHeightMct() Called!!');
+            if (!mctformPanel || !mctformPanel.getForm || !mctformPanel.getForm().getFields) {
+                throw new Error('mctformPanel is not defined or does not have the required methods');
+            }
+            var vFld = mctformPanel.getFld(vFldId);
+            vFld.inputEl.dom.style['min-height'] = vheight;
+        } catch (err) {
+            console.log('setHeightMct() Error: ', err);
+        }
+    };
+    static getMainToolbarMct() {
+        try {
+            console.log('getMainToolbarMct() Called!!');
+            var maintoolbar = EAM.Utils.getMainToolbar();
+            if (maintoolbar) {
+                return maintoolbar;
+            }
+        } catch (err) {
+            console.log('getMainToolbarMct() Error: ', err);
+        }
+    };
+    static getdataspyToolbarMct(vbtnAction) {
+        try {
+            console.log('getdataspyToolbarMct() Called!!');
+            var dataspyToolbar = Ext.ComponentQuery.query('toolbar'); //[3]
+            console.log('dataspyToolbar', dataspyToolbar);
+            var toolbarButton = '';
+            var index = '';
+            for (var i = 0; i < dataspyToolbar.length; i++) {
+                if (vbtnAction)
+                    toolbarButton = dataspyToolbar[i].down('[action=' + vbtnAction + ']');
+                if (toolbarButton) {
+                    console.log(vbtnAction + ' button found:', toolbarButton);
+                    index = dataspyToolbar[i].items.indexOf(toolbarButton);
+                    break;
+                }
+            }
+            if (toolbarButton || index) {
+                return {
+                    toolbarButton,
+                    index
+                }
+            }
+        } catch (err) {
+            console.log('getdataspyToolbarMct() Error: ', err);
+        }
+    };
+    static setFldAttMct(mctformPanel, vFld) {
+        try {
+            console.log('setFldAttMct() Called!!');
+            if (!vFld || typeof vFld !== 'object') {
+                throw new Error('vFld is not defined or is not an object');
+            }
+            if (!mctformPanel || !mctformPanel.getForm || !mctformPanel.getForm().getFields) {
+                throw new Error('mctformPanel is not defined or does not have the required methods');
+            }
+            EAM.Builder.setFieldState(vFld, mctformPanel.getForm().getFields());
+
+        } catch (err) {
+            console.log('setFldAttMct() Error: ', err);
+        }
+    };
+    static setDefultFldVauleMct(mctformPanel, vFldId, vDefultVaule, vFldVauleFlag) {
+        try {
+            console.log('setDefultFldVauleMct() Called!!');
+            if (!mctformPanel || !mctformPanel.getForm || !mctformPanel.getForm().getFields) {
+                throw new Error('mctformPanel is not defined or does not have the required methods');
+            }
+            mctformPanel.setFldValue(vFldId, vDefultVaule, vFldVauleFlag);
+
+        } catch (err) {
+            console.log('setDefultFldVauleMct() Error: ', err);
+        }
+    };
+    static getLookUPGridResponse(vGrdName, vlovTagName, vInputFld = {}, vFilter = {}, vSfName, vUfName, vTabName, vURL) {
+        try {
+            console.log('getLookUPGridResponse() Called!!');
+
+            // Base request data
+            var requestData = {
+                GRID_NAME: vGrdName,
+                LOV_TAGNAME: vlovTagName,
+                GRID_TYPE: "LOV",
+                usagetype: "LOV",
+                REQUEST_TYPE: "LOV.HEAD_DATA.STORED",
+                CURRENT_TAB_NAME: vTabName,
+                USER_FUNCTION_NAME: vUfName,
+                SYSTEM_FUNCTION_NAME: vSfName,
+                COMPONENT_INFO_TYPE: "DATA_ONLY"
+            };
+
+            // Dynamically add LOV_ALIAS_NAME, LOV_ALIAS_VALUE, and LOV_ALIAS_TYPE
+            var vIp = {};
+            var i = 1;
+            for (var key in vInputFld) {
+                if (vInputFld.hasOwnProperty(key)) {
+                    vIp[`LOV_ALIAS_NAME_${i}`] = key;
+                    vIp[`LOV_ALIAS_VALUE_${i}`] = vInputFld[key];
+                    vIp[`LOV_ALIAS_TYPE_${i}`] = "text";
+                    i++;
+                }
+            }
+
+            // Dynamically add MADDON_FILTER_ALIAS_NAME, MADDON_FILTER_OPERATOR, MADDON_FILTER_JOINER, MADDON_FILTER_SEQNUM, and MADDON_FILTER_VALUE
+            var vFilterIp = {};
+            var j = 1; // Use a different variable name to avoid confusion with the previous loop
+            for (var fkey in vFilter) {
+                if (vFilter.hasOwnProperty(fkey)) {
+                    vFilterIp[`MADDON_FILTER_ALIAS_NAME_${j}`] = fkey;
+                    vFilterIp[`MADDON_FILTER_OPERATOR_${j}`] = '=';
+                    vFilterIp[`MADDON_FILTER_VALUE_${j}`] = vFilter[fkey];
+                    vFilterIp[`MADDON_FILTER_JOINER_${j}`] = 'AND';
+                    vFilterIp[`MADDON_FILTER_SEQNUM_${j}`] = '1';
+                    j++;
+                }
+            }
+            // Merge requestData with dynamically created vIp and vFilterIp objects
+            var vFinalReq = {
+                ...requestData,
+                ...vIp,
+                ...vFilterIp
+            };
+
+            // Make the Ajax request
+            var AlertGridRequestData = EAM.Ajax.request({
+                url: vURL,
+                params: vFinalReq
+            });
+
+            // Process the response
+            var vLookUPGridResponse = AlertGridRequestData.responseData;
+            if (vLookUPGridResponse) {
+                return vLookUPGridResponse; // Return the response data if needed
+            }
+        } catch (err) {
+            console.log('getLookUPGridResponse() Error: ', err);
+            throw err; // Re-throw the error if needed
+        }
+    };
+    static getAlertGridResponse(vGrdName, vInputFld = {}, vFilter = {}, vSfName, vUfName, vTabName, vURL) {
+        try {
+            console.log('getAlertGridResponse() Called!!');
+
+            // Base request data
+            var requestData = {
+                GRID_NAME: vGrdName,
+                GRID_TYPE: "LOV",
+                REQUEST_TYPE: "LOV.HEAD_DATA.STORED",
+                CURRENT_TAB_NAME: vTabName,
+                USER_FUNCTION_NAME: vUfName,
+                SYSTEM_FUNCTION_NAME: vSfName,
+                COMPONENT_INFO_TYPE: "DATA_ONLY"
+            };
+
+            // Dynamically add LOV_ALIAS_NAME, LOV_ALIAS_VALUE, and LOV_ALIAS_TYPE
+            var vIp = {};
+            var i = 1;
+            for (var key in vInputFld) {
+                if (vInputFld.hasOwnProperty(key)) {
+                    vIp[`LOV_ALIAS_NAME_${i}`] = key;
+                    vIp[`LOV_ALIAS_VALUE_${i}`] = vInputFld[key];
+                    vIp[`LOV_ALIAS_TYPE_${i}`] = "text";
+                    i++;
+                }
+            }
+
+            // Dynamically add MADDON_FILTER_ALIAS_NAME, MADDON_FILTER_OPERATOR, MADDON_FILTER_JOINER, MADDON_FILTER_SEQNUM, and MADDON_FILTER_VALUE
+            var vFilterIp = {};
+            var i = 1;
+            for (var key in vFilter) {
+                if (vFilter.hasOwnProperty(key)) {
+                    vFilterIp[`MADDON_FILTER_ALIAS_NAME_${i + 1}`] = key;
+                    vFilterIp[`MADDON_FILTER_OPERATOR_${i + 1}`] = '=';
+                    vFilterIp[`MADDON_FILTER_VALUE_${i + 1}`] = vInputFld[key];
+                    vFilterIp[`MADDON_FILTER_JOINER_${i + 1}`] = 'AND';
+                    vFilterIp[`MADDON_FILTER_SEQNUM_${i + 1}`] = '1';
+                    i++;
+                }
+            }
+
+            // Merge requestData with dynamically created vIp and vFilterIp objects
+            var vFinalReq = {
+                ...requestData,
+                ...vIp,
+                ...vFilterIp
+            };
+
+            // Make the Ajax request
+            var AlertGridRequestData = EAM.Ajax.request({
+                url: vURL,
+                params: vFinalReq
+            });
+
+            // Process the response
+            var vAlertGridResponse = AlertGridRequestData.responseData;
+            if (vAlertGridResponse) {
+                return vAlertGridResponse; // Return the response data if needed
+            }
+        } catch (err) {
+            console.log('getAlertGridResponse() Error: ', err);
+            throw err; // Re-throw the error if needed
+        }
+    };
+    static getListGridResponseMct(vGrdName, vSfName, vUfName, vTabName, vCountDataSpyURL, vListURL) {
+        try {
+            console.log('getListGridResponseMct() Called!!');
+            var req = {
+                COMPONENT_INFO_TYPE: 'COUNT',
+                GRID_NAME: vGrdName,
+                GET_ALL_DATABSE_ROWS: true,
+                CACHE_REQUEST: false,
+                GET_LAST_CACHED: true,
+                USER_FUNCTION_NAME: vUfName,
+                SYSTEM_FUNCTION_NAME: vSfName,
+                CURRENT_TAB_NAME: vTabName
+            }
+            var response = EAM.Ajax.request({
+                url: vCountDataSpyURL,
+                params: req,
+                async: false, // Consider changing to true and using promises/callbacks
+            });
+            const vFindDataSpy = response;
+
+            if (vFindDataSpy) { // Find DATASPYID and Total Count
+                console.log('vFindDataSpy', vFindDataSpy);
+
+                const vTotalCount = vFindDataSpy.responseData.pageData.grid.GRIDRESULT.GRID["TOTAL-COUNT"];
+                const vdataId = vFindDataSpy.responseData.pageData.grid.GRIDRESULT.DATASPY.id;
+                const vdataDesc = vFindDataSpy.responseData.pageData.grid.GRIDRESULT.DATASPY.label;
+                // Remove all non-numeric characters (like ".", "/", etc.)
+                const numericTotalCount = vTotalCount.replace(/\D/g, ''); // \D matches any non-digit character
+                console.log('numericTotalCount', numericTotalCount);
+
+                // Convert the cleaned string to a number
+                const totalCountNumber = Number(numericTotalCount);
+                console.log('totalCountNumber', totalCountNumber);
+                console.log('DATASPY_ID', vdataId);
+                console.log('DATASPY_DSEC', vdataDesc);
+                var requestData = {
+                    USER_FUNCTION_NAME: vUfName,
+                    SYSTEM_FUNCTION_NAME: vSfName,
+                    CURRENT_TAB_NAME: vTabName,
+                    DATASPY_ID: vdataId,
+                };
+
+                // First request to get initial data
+                var response = EAM.Ajax.request({
+                    url: vListURL,
+                    params: requestData,
+                    async: false, // Consider changing to true and using promises/callbacks
+                });
+
+                var records = [];
+                var data;
+
+                if (response.success === true) {
+                    var vResults = response.responseData.pageData.grid.GRIDRESULT.GRID.DATA;
+
+                    for (var x = 0; x < vResults.length; x++) {
+                        data = vResults[x];
+                        records.push(data);
+                    }
+
+                    console.log("First Request Done");
+                }
+
+                var CursorPOS = Number(response.responseData.pageData.grid.GRIDRESULT.GRID.METADATA.CURRENTCURSORPOSITION) + 1;
+                var vCurPOS;
+
+                // Check if more records are present
+                if (response.responseData.pageData.grid.GRIDRESULT.GRID.METADATA.MORERECORDPRESENT === "+") {
+                    console.log('Second request');
+
+                    var getUpdatedData;
+
+                    do {
+                        vCurPOS = vCurPOS || CursorPOS;
+
+                        getUpdatedData = EAM.Ajax.request({
+                            url: 'GETCACHE',
+                            extraParams: {
+                                'COMPONENT_INFO_TYPE': 'DATA_ONLY',
+                                'COMPONENT_INFO_TYPE_MODE': 'CACHE',
+                                'GRID_ID': response.responseData.pageData.grid.GRIDRESULT.GRID.METADATA.GRIDID,
+                                'GRID_NAME': response.responseData.pageData.grid.GRIDRESULT.GRID.METADATA.GRIDNAME,
+                                'DATASPY_ID': response.responseData.pageData.grid.GRIDRESULT.GRID.METADATA.DATASPYID,
+                                'NUMBER_OF_ROWS_FIRST_RETURNED': 50,
+                                'CACHE_REQUEST': false,
+                                'CURSOR_POSITION': vCurPOS,
+                                'CURRENT_TAB_NAME': vTabName,
+                                'SYSTEM_FUNCTION_NAME': vSfName,
+                                'USER_FUNCTION_NAME': vUfName,
+                            },
+                            async: false, // Consider changing to true and using promises/callbacks
+                        });
+
+                        vCurPOS += Number(response.responseData.pageData.grid.GRIDRESULT.GRID.METADATA.CURRENTCURSORPOSITION);
+
+                        if (getUpdatedData.responseData.pageData.grid.GRIDRESULT !== undefined) {
+                            var vgrdResponse = getUpdatedData.responseData.pageData.grid.GRIDRESULT.GRID.DATA;
+                            var vgrdResponseMetaData = getUpdatedData.responseData.pageData.grid.GRIDRESULT.GRID.METADATA;
+                            if (vgrdResponse.length > 0) {
+                                for (var i = 0; i < vgrdResponse.length; i++) {
+                                    data = vgrdResponse[i];
+                                    records.push(data);
+                                }
+                            }
+                        }
+
+                    } while (getUpdatedData.responseData.pageData.grid.GRIDRESULT.GRID.METADATA.MORERECORDPRESENT === "+");
+                }
+                var vGridTotalRecordCount = totalCountNumber;
+                if (records || vgrdResponseMetaData || vGridTotalRecordCount) {
+                    return {
+                        records,
+                        vgrdResponseMetaData,
+                        vGridTotalRecordCount
+                    }
+                    console.error("Error in fullLSTDetails:", err);
+                    throw err; // Rethrow the error to handle it in the caller
+                }
+            }
+        } catch (err) {
+            console.log('getListGridResponseMct() Error: ', err);
+        }
+    };
+    static lookupOverrideLovMCT(mctformPanel, pFld, vLovName, vInputParameter, vReturnFldandVaule, vClearFld) {
+        try {
+            console.log('lookupOverrideLovMCT() Called!!');
+            var vLookUpLOV = {
+                lovName: vLovName,
+                inputVars: {
+                    ...vInputParameter
+                },
+                returnFields: {
+                    ...vReturnFldandVaule
+                },
+                clearFields: [...vClearFld]
+            };
+            pFld.lookupLOV = vLookUpLOV;
+            pFld.validateLOV = vLookUpLOV;
+            pFld.extraLOVParams = null;
+            pFld.isQueryCode = false;
+            pFld.fetchMoreRequestType = null;
+            pFld.validateOnBlur = true;
+            pFld.validateOnChange = true;
+            pFld.useBeforeValidateLOV = false;
+            pFld.dataspyConfig = {
+                hideDataspyList: !1,
+                hideEditButton: !1,
+                hideExcelButton: !1,
+                noFilterRow: !1,
+                dataspyXType: 'dataspy'
+            };
+        } catch (err) {
+            console.log('lookupOverrideLovMCT() Error: ', err);
+        }
+    };
+    static lookupBrinkbackLovMct(vGrdName, vlovTagName, vTabName, vUfName, vSfName, vInputFld = {}, vFilter = {}) {
+        try {
+            console.log('lookupBrinkbackLovMct() Called!!');
+            // Base request data
+            var requestData = {
+                GRID_NAME: vGrdName,
+                LOV_TAGNAME: vlovTagName,
+                GRID_TYPE: "LOV",
+                usagetype: "LOV",
+                REQUEST_TYPE: "LOV.HEAD_DATA.STORED",
+                CURRENT_TAB_NAME: vTabName,
+                USER_FUNCTION_NAME: vUfName,
+                SYSTEM_FUNCTION_NAME: vSfName,
+                COMPONENT_INFO_TYPE: "DATA_ONLY"
+            };
+
+            // Dynamically add LOV_ALIAS_NAME, LOV_ALIAS_VALUE, and LOV_ALIAS_TYPE
+            var vIp = {};
+            var i = 1;
+            for (var key in vInputFld) {
+                if (vInputFld.hasOwnProperty(key)) {
+                    vIp[`LOV_ALIAS_NAME_${i}`] = key;
+                    vIp[`LOV_ALIAS_VALUE_${i}`] = vInputFld[key];
+                    vIp[`LOV_ALIAS_TYPE_${i}`] = "text";
+                    i++;
+                }
+            }
+
+            // Dynamically add MADDON_FILTER_ALIAS_NAME, MADDON_FILTER_OPERATOR, MADDON_FILTER_JOINER, MADDON_FILTER_SEQNUM, and MADDON_FILTER_VALUE
+            var vFilterIp = {};
+            var j = 1; // Use a different variable name to avoid confusion with the previous loop
+            for (var fkey in vFilter) {
+                if (vFilter.hasOwnProperty(fkey)) {
+                    vFilterIp[`MADDON_FILTER_ALIAS_NAME_${j}`] = fkey;
+                    vFilterIp[`MADDON_FILTER_OPERATOR_${j}`] = '=';
+                    vFilterIp[`MADDON_FILTER_VALUE_${j}`] = vFilter[fkey];
+                    vFilterIp[`MADDON_FILTER_JOINER_${j}`] = 'AND';
+                    vFilterIp[`MADDON_FILTER_SEQNUM_${j}`] = '1';
+                    j++;
+                }
+            }
+            // Merge requestData with dynamically created vIp and vFilterIp objects
+            var vFinalReq = {
+                ...requestData,
+                ...vIp,
+                ...vFilterIp
+            };
+
+            // Make the Ajax request
+            var lookupBrinkbackLovData = EAM.Ajax.request({
+                url: "LOVPOP",
+                params: vFinalReq
+            });
+            var vRecords = lookupBrinkbackLovData.responseData
+        } catch (err) {
+            console.log('lookupBrinkbackLovMct() error:', err);
+        }
+    };
+    static setShowErrorMessageMCT(userLang, errorMessage) {
+        try {
+            console.log('setShowErrorMessageMCT() Called!!');
+
+            // Map language codes to their respective error messages
+            const errorMessages = {
+                'NL': `${errorMessage}`, // Dutch
+                'GE': `${errorMessage}`, // German
+                'ES': `${errorMessage}`, // Spanish
+                'FI': `${errorMessage}`, // Finnish
+                'EN': `${errorMessage}` // Default (English)
+            };
+
+            // Get the error message based on the user' s language,default to English if not found
+            const message = errorMessages[userLang] || errorMessages['EN'];
+
+            // Show the error message
+            EAM.Messaging.showError(message);
+            return false;
+        } catch (err) {
+            console.log('setShowErrorMessageMCT() Error: ', err);
+        }
+    };
+    static setshowConfirmationMessageMCT(userLang, errorMessage) {
+        try {
+            console.log('setshowConfirmationMessageMCT() Called!!');
+
+            // Map language codes to their respective error messages
+            const errorMessages = {
+                'NL': `${errorMessage}`, // Dutch
+                'GE': `${errorMessage}`, // German
+                'ES': `${errorMessage}`, // Spanish
+                'FI': `${errorMessage}`, // Finnish
+                'EN': `${errorMessage}` // Default (English)
+            };
+
+            // Get the error message based on the user' s language,default to English if not found
+            const message = errorMessages[userLang] || errorMessages['EN'];
+
+            // Show the error message
+            EAM.Messaging.showConfirmation(message);
+            // return false;
+        } catch (err) {
+            console.log('setshowConfirmationMessageMCT() Error: ', err);
+        }
+    };
+    static setshowWarningMessageMCT(userLang, errorMessage) {
+        try {
+            console.log('setshowWarningMessageMCT() Called!!');
+
+            // Map language codes to their respective error messages
+            const errorMessages = {
+                'NL': `${errorMessage}`, // Dutch
+                'GE': `${errorMessage}`, // German
+                'ES': `${errorMessage}`, // Spanish
+                'FI': `${errorMessage}`, // Finnish
+                'EN': `${errorMessage}` // Default (English)
+            };
+            // Get the error message based on the user' s language,default to English if not found
+            const message = errorMessages[userLang] || errorMessages['EN'];
+
+            // Show the error message
+            EAM.Messaging.showWarning(message);
+            // return false;
+        } catch (err) {
+            console.log('setshowWarningMessageMCT() Error: ', err);
+        }
+    };
+    static performOperationMCT(response, vSelectionData = {}, vAdditionalParamOptional = {}, vOperationalURL) {
+        try {
+            console.log('performOperationMCT() Called!!');
+            if (response.success) {
+                // Extract values from the response
+                var vHDRreqValues = response.responseData.pageData.values;
+
+                // Prepare the update request object
+                var vHDRUpdateReq = {
+                    ...vHDRreqValues,
+                    ...vSelectionData,
+                    ...vAdditionalParamOptional // Spread optional parameters
+                };
+
+                // Make the second AJAX request
+                var updateResponse = EAM.Ajax.request({
+                    url: vOperationalURL,
+                    params: vHDRUpdateReq,
+                    async: false
+                });
+
+                if (updateResponse.success) {
+                    // Show success message
+                    EAM.Messaging.showConfirmation({
+                        msg: updateResponse.responseData.pageData.messages[0].msg
+                    });
+                } else {
+                    console.log('Operation failed!!');
+                }
+            }
+        } catch (err) {
+            console.error('Error in performOperationMCT:', err);
+        }
+    };
+    static findHDRRecordDetailsMCT(vSysFname, vUserFname, vTabName, vAdditionalParam = {}, vRecFoundTabURL) {
+        try {
+            console.log('findHDRRecordDetailsMCT() Called!!');
+            // Prepare the initial request object
+            var vHDRreq = {
+                SYSTEM_FUNCTION_NAME: vSysFname,
+                USER_FUNCTION_NAME: vUserFname,
+                CURRENT_TAB_NAME: vTabName,
+                SCROLLROW: 'YES',
+                ONLY_DATA_REQUIRED: true,
+                ...vAdditionalParam // Spread additional parameters
+            };
+
+            // Make the first AJAX request
+            var response = EAM.Ajax.request({
+                url: vRecFoundTabURL,
+                params: vHDRreq,
+                async: false
+            });
+            if (response.success) {
+                // Extract values from the response
+                var vHDRreqValues = response.responseData;
+            }
+            if (vHDRreqresponseData) {
+                return vHDRreqresponseData;
+            }
+        } catch (err) {
+            console.log('findHDRRecordDetailsMCT() Error: ', err);
+        }
+    };
+    static servercallopertioanlSameTabMCT(mctformPanel, vUrl, AdditionalOpertionsFld = {}) {
+        try {
+            console.log('servercallopertioanlSameTabMCT() Called!!');
+            var serverResponse = EAM.Utils.serverCall({
+                mapping: vUrl,
+                form: mctformPanel,
+                fieldsToSend: "all",
+                additionalParams: {
+                    CHECK_CF_CHANGEFLAG: true,
+                    ONLY_DATA_REQUIRED: true,
+                    ...AdditionalOpertionsFld
+                },
+                fieldsToSet: "all",
+                sendGridState: true,
+                validate: false,
+                sendFormInfo: true,
+                syncLastData: true
+            });
+            if (serverResponse.pageData.success == true) {
+                var resetButton = EAM.Utils.getMainToolbar().getResetButton();
+                resetButton.fireEvent("click", resetButton);
+            }
+        } catch (err) {
+            console.log('servercallopertioanlSameTabMCT() Error: ', err);
+        }
+    };
+    static createTextFieldDsecFldMct(mctformPanel, vFld, vId, vXtype, vMargin, vWidth, vHeight, vAttributeFlag) {
+        try {
+            console.loh('createTextFieldDsecFldMct() Called!!!');
+            var vLoc13 = mctformPanel.getFld(vFld);
+            var vprecautionField = mctformPanel.getFld(vFld),
+            vLabel = vprecautionField.config.fieldLabel,
+            vLabelWidth = vprecautionField.config.labelWidth,
+            vContainer = vprecautionField.up('[hostCmpId=' + vprecautionField.hostComponent + ']'),
+            vIndex = vContainer.items.indexOf(vprecautionField);
+            // Field width set
+            console.log('vprecautionField', vprecautionField);
+            console.log('vContainer', vContainer);
+            vprecautionField.setFieldLabel('');
+
+            var vFieldContainer = Ext.create('Ext.form.FieldContainer', {
+                id: 'fieldContainer1',
+                fieldLabel: vLabel,
+                labelWidth: vLabelWidth,
+                labelPad: 1,
+                layout: 'hbox',
+                style: {
+                    'margin-bottom': '0px'
+                },
+                items: [{
+                        xtype: 'fieldcontainer',
+                        id: 'fieldContainer2',
+                        fieldLabel: '',
+                        layout: 'hbox',
+                        style: {
+                            'margin-bottom': '0px'
+                        },
+                        items: [vprecautionField, var vLoc3DescFld = Ext.create('Ext.form.TextField', {
+                                xtype: vXtype,
+                                margin: vMargin,
+                                width: vWidth,
+                                id: vId,
+                                name: vId,
+                                itemId: vId,
+                                height: vHeight,
+                                renderTo: vLoc13.id,
+                                readOnly: vAttributeFlag,
+                                wasDirty: !1,
+                                growAppend: '\n-',
+                                enterIsSpecial: !1,
+                                preventScrollbars: !1,
+                                returnRe: /\r/g,
+                                ariaAttributes: {
+                                    'aria-multiline': !0
+                                },
+                            })
+                        ]
+                    }
+                ]
+            });
+            vContainer.insert(vIndex, vFieldContainer);
+        } catch (err) {
+            console.log('Error createTextFieldDsecFldMct() Error: ', err);
+        }
+    }
+}
